@@ -4,17 +4,17 @@ NUM_WORKERS = 170_000_000
 BASE_TAX_RATE = 0.15
 
 HIGH_INFLATION_DICT = {
-    2008: 0.04,
-    2021: 0.05,
-    2022: 0.08,
-    2023: 0.04
+    2022: 0.08
 }
 
+# https://www.irs.gov/newsroom/irs-releases-tax-inflation-adjustments-for-tax-year-2025
+INCOME_TAX_RATES = [
+    0.1, 0.12, 0.22, 0.24, 0.32, 0.35, 0.37
+]
 
 if __name__ == "__main__":
     tax_revenue_dict = dict()
 
-    last_net_worth = 0
     curr_net_worth = 0
     date = None
 
@@ -29,21 +29,21 @@ if __name__ == "__main__":
             if "TopPt1" in line or "RemainingTop1" in line:
                 columns = line.split(',')
                 date = columns[0]
-                net_worth = int(columns[2]) * 1_000_000  # Number in millions
+                net_worth = int(columns[6]) * 1_000_000  # Number in millions
                 curr_net_worth += net_worth
             else:
                 if date is not None:
-                    delta_net_worth = curr_net_worth - last_net_worth
                     year = int(date.split(":")[0])
                     if year in HIGH_INFLATION_DICT:
-                        tax_rate = 5 * HIGH_INFLATION_DICT[year]
+                        dividend_yield = HIGH_INFLATION_DICT[year]
                     else:
-                        tax_rate = 0.15
-                    tax_revenue = max(0.0, delta_net_worth * tax_rate)
+                        dividend_yield = 0.05
+                    dividend_tax_rate = dividend_yield * INCOME_TAX_RATES[-1]
 
-                    tax_revenue_dict[date] = tax_revenue
+                    annualized_tax_revenue = curr_net_worth * dividend_tax_rate
+                    quarterly_tax_revenue = annualized_tax_revenue / 4
+                    tax_revenue_dict[date] = quarterly_tax_revenue
 
-                    last_net_worth = curr_net_worth
                     curr_net_worth = 0
                     date = None
     with open("1-tax_revenue_dict.csv", 'w') as csv_file:
